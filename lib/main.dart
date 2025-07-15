@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:storarch/Screens/splash_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Screens/landing_screen.dart';
 
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://tjlcoderpvovxytqmrox.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqbGNvZGVycHZvdnh5dHFtcm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzMzI1MTMsImV4cCI6MjA2NTkwODUxM30.kk2bte4j0HtbOS4D_wtOvKH6SDLS7RVm3SW3xiRX01I',
+  );
+  print('[main.dart] Supabase initialized. Running app.');
+
   runApp(const Storarch());
+}
+
+class DefaultFirebaseOptions {
+  static var currentPlatform;
 }
 
 class Storarch extends StatelessWidget {
@@ -20,11 +33,7 @@ class Storarch extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // Set the initial route to the new LandingScreen
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const LandingScreen(),
-   }
+      home: const SplashScreen(), 
   );
  }
 }

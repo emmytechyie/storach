@@ -1,10 +1,13 @@
-import 'dart:io'; // Required for File type
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:storarch/Screens/homepage_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class UploadDocumentScreen extends StatefulWidget {
-  const UploadDocumentScreen({super.key});
+  final Map<String, dynamic>? projectToEdit;
+  const UploadDocumentScreen({super.key, this.projectToEdit});
 
   @override
   State<UploadDocumentScreen> createState() => _UploadDocumentScreenState();
@@ -20,10 +23,8 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _supervisorController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-
   final TextEditingController _descriptionController = TextEditingController();
 
-  // --- Define Colors (you can reuse colors from your theme or define new ones) ---
   static const Color darkScaffoldBackground = Color(0xFF1F1F1F);
   static const Color darkSurfaceColor = Color(0xFF2C2C2E);
   static const Color darkPrimaryText = Colors.white;
@@ -36,12 +37,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
         type: FileType.custom,
         allowedExtensions: [
           'pdf',
-          'doc',
-          'docx',
-          'txt',
-          'jpg',
-          'png'
-        ], // Specify allowed types
+        ],
       );
 
       if (result != null && result.files.single.path != null) {
@@ -49,7 +45,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
           _selectedFile = File(result.files.single.path!);
           _fileName = result.files.single.name;
           _statusMessage = "Selected: $_fileName";
-          _uploadProgress = 0.0; // Reset progress
+          _uploadProgress = 0.0;
         });
       }
     } catch (e) {
@@ -60,9 +56,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   }
 
   Future<void> _uploadFile() async {
-    if (!_formKey.currentState!.validate()) {
-      return; // Don't proceed if form is invalid
-    }
+    if (!_formKey.currentState!.validate()) return;
     if (_selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a file first!")),
@@ -72,49 +66,72 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
     setState(() {
       _isUploading = true;
-      _statusMessage = "Uploading $_fileName...";
+      _statusMessage = "Uploading $_fileName to Supabase...";
       _uploadProgress = 0.0;
     });
 
-    // --- Simulate Upload ---
-    // In a real app, you would use http.MultipartRequest or a similar method
-    // to send the file to your backend.
     try {
-      // Simulate progress
-      for (int i = 0; i <= 10; i++) {
-        await Future.delayed(
-            const Duration(milliseconds: 200)); // Simulate network delay
-        if (!mounted) return; // Check if widget is still in the tree
-        setState(() {
-          _uploadProgress = i / 10.0;
-        });
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      final fileBytes = await _selectedFile!.readAsBytes();
+      final fileExt = _fileName!.split('.').last;
+      final filePath = '${const Uuid().v4()}.$fileExt'; // unique filename
+
+      // Upload to Supabase Storage
+      final storageResponse = await supabase.storage
+          .from('documents') // your storage bucket name
+          .uploadBinary(filePath, fileBytes);
+
+      if (storageResponse.isEmpty) {
+        throw Exception("Failed to upload file.");
       }
 
-      // Simulate successful upload
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (context) => HomePage(
-      onToggleTheme: () {}, uploadedDocuments: const [],
-    ),
-  ),
-);
-      }
+      // Get the public URL
+      final fileUrl = supabase.storage.from('documents').getPublicUrl(filePath);
+
+      // Insert metadata into 'projects' table
+      final insertResponse = await supabase
+          .from('projects')
+          .insert({
+            'student_name': _nameController.text.trim(),
+            'supervisor': _supervisorController.text.trim(),
+            'title': _titleController.text.trim(),
+            'file_url': fileUrl,
+            'uploaded_at': DateTime.now().toIso8601String(),
+            'user_id': user?.id,
+          })
+          .select()
+          .single(); // gets the inserted row, catches conflict errors better
+
       setState(() {
+        _uploadProgress = 1.0;
         _statusMessage = "$_fileName uploaded successfully!";
-        //Colors.green; // ✅ Set background color to green
         _selectedFile = null;
         _fileName = null;
-        _descriptionController.clear();
-        _uploadProgress = 0.0;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_statusMessage)),
-        );
+        _nameController.clear();
+        _supervisorController.clear();
+        _titleController.clear();
       });
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_statusMessage)),
+      );
+
+      // Navigate home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(
+            onToggleTheme: () {},
+            uploadedDocuments: const [],
+            fullName: '',
+            builder: (context) {},
+          ),
+        ),
+      );
     } catch (e) {
-      if (!mounted) return;
       setState(() {
         _statusMessage = "Upload failed: $e";
       });
@@ -122,17 +139,16 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
         SnackBar(content: Text("Upload failed: $e")),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
-      }
+      setState(() => _isUploading = false);
     }
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
+    _nameController.dispose();
+    _supervisorController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -144,8 +160,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
         title: const Text('Upload Project',
             style: TextStyle(color: darkPrimaryText)),
         backgroundColor: darkSurfaceColor,
-        iconTheme:
-            const IconThemeData(color: darkPrimaryText), // For back button
+        iconTheme: const IconThemeData(color: darkPrimaryText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -153,7 +168,6 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const SizedBox(height: 10),
-              // --- File Picker Button ---
               ElevatedButton.icon(
                 icon: const Icon(Icons.attach_file),
                 label: const Text('Select Document'),
@@ -165,17 +179,13 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                 ),
               ),
               const SizedBox(height: 5.0),
-
-              // --- Selected File Info & Status ---
               if (_fileName != null || _isUploading)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      _statusMessage,
-                      style:
-                          const TextStyle(color: darkPrimaryText, fontSize: 15),
-                    ),
+                    Text(_statusMessage,
+                        style: const TextStyle(
+                            color: darkPrimaryText, fontSize: 15)),
                     if (_isUploading) ...[
                       const SizedBox(height: 10),
                       LinearProgressIndicator(
@@ -187,15 +197,13 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                       const SizedBox(height: 5),
                       Text(
                         '${(_uploadProgress * 100).toStringAsFixed(0)}%',
-                        textAlign: TextAlign.end,
                         style: const TextStyle(
                             color: darkSecondaryText, fontSize: 12),
                       ),
                     ],
                   ],
                 ),
-              if (_fileName == null &&
-                  !_isUploading) // Show default status if nothing is happening
+              if (_fileName == null && !_isUploading)
                 Text(
                   _statusMessage,
                   textAlign: TextAlign.center,
@@ -203,13 +211,10 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                       color: darkSecondaryText, fontStyle: FontStyle.italic),
                 ),
               const SizedBox(height: 44.0),
-
-              //Document Description
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Name
                     TextFormField(
                       controller: _nameController,
                       enabled: !_isUploading,
@@ -221,8 +226,6 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                               : null,
                     ),
                     const SizedBox(height: 16.0),
-
-                    // Supervisor Name
                     TextFormField(
                       controller: _supervisorController,
                       enabled: !_isUploading,
@@ -235,8 +238,6 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                               : null,
                     ),
                     const SizedBox(height: 16.0),
-
-                    // Project Title
                     TextFormField(
                       controller: _titleController,
                       enabled: !_isUploading,
@@ -251,10 +252,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 30.0),
-
-              //  Upload Button
               if (_selectedFile != null) ...[
                 ElevatedButton.icon(
                   icon: _isUploading
@@ -276,12 +274,11 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                       ? null
                       : _uploadFile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // ✅ Always green
+                    backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15.0),
                     textStyle: const TextStyle(fontSize: 16),
-                    disabledBackgroundColor:
-                        Colors.green, // ✅ Keep green even when disabled
+                    disabledBackgroundColor: Colors.green,
                     disabledForegroundColor: Colors.white70,
                   ),
                 ),
@@ -311,5 +308,5 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
       filled: true,
       fillColor: darkSurfaceColor.withOpacity(0.5),
     );
-  } 
+  }
 }

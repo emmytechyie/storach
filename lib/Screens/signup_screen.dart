@@ -1,22 +1,15 @@
-// lib/signup_screen.dart
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:storarch/Screens/homepage_screen.dart';
+import 'package:storarch/Screens/pending_approval_screen.dart';
 import 'package:storarch/constants.dart';
 import 'package:storarch/Screens/login_screen.dart';
-// Optional: If you want to use a Google icon for the button
-// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-//Potentially import your Login Screen file here later for navigation
-// import 'login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
-  // Optional: Add a const constructor if needed (good practice)
   const SignUpScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _SignUpScreenState createState() => _SignUpScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
@@ -24,6 +17,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _matricController = TextEditingController();
+  bool _isLoading = false;
+
+  bool _isPasswordObscured = true;
+  bool _isConfirmPasswordObscured = true;
+
+  String requestedRole = 'student';
+  static const dropdownTextStyle = TextStyle(color: Colors.white);
+  User? _newlyCreatedUser;
 
   @override
   void dispose() {
@@ -31,254 +33,370 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _nameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _matricController.dispose();
     super.dispose();
+  }
+
+  InputDecoration inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 1.0, horizontal: 15.0),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.0),
+        borderSide: const BorderSide(color: Color(0xFFD2B48C), width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.0),
+        borderSide: const BorderSide(color: Colors.white, width: 2.0),
+      ),
+      filled: true,
+      fillColor: fillColor.withOpacity(0.05),
+    );
+  }
+
+  Future<void> _register() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+    final fullName = _nameController.text.trim();
+    final matricNumber = _matricController.text.trim();
+
+    if (password != confirmPassword) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Passwords do not match!')));
+      return;
+    }
+    if (requestedRole == 'student' && matricNumber.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Matric number is required for students.')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'full_name': fullName},
+      );
+
+      if (response.user != null) {
+        setState(() {
+          _newlyCreatedUser = response.user;
+        });
+        if (!mounted) return;
+        _showVerificationDialog(fullName, matricNumber);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Signup failed: Could not create user.')));
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Signup failed: ${e.message}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // --- THIS IS THE CORRECTED METHOD ---
+  void _showVerificationDialog(String fullName, String matricNumber) {
+    bool isVerifying = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // StatefulBuilder allows the dialog to have its own state for the loading indicator
+        return StatefulBuilder(builder: (context, setStateInDialog) {
+          return AlertDialog(
+            title: const Text('Verify Your Email'),
+            content: const Text(
+                'A verification link has been sent to your email. Please check your inbox and verify before continuing.'),
+            actions: [
+              isVerifying
+                  ? const Center(
+                      child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ))
+                  : TextButton(
+                      onPressed: () async {
+                        setStateInDialog(() {
+                          isVerifying = true;
+                        });
+
+                        try {
+                          // Step 1: Temporarily sign in the user.
+                          // This will FAIL if they haven't clicked the email link yet, which is perfect.
+                          // This gives us a valid session to write to the 'profiles' table.
+                          final authResponse = await Supabase
+                              .instance.client.auth
+                              .signInWithPassword(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                          );
+
+                          if (authResponse.user != null) {
+                            // Step 2: Now that we are authenticated, create the user's profile.
+                            await Supabase.instance.client
+                                .from('profiles')
+                                .upsert({
+                              'id': authResponse.user!.id,
+                              'full_name': fullName,
+                              'requested_role': requestedRole,
+                              'matric_number':
+                                  matricNumber.isEmpty ? null : matricNumber,
+                              'role': requestedRole,
+                              'status': 'pending', // Set status to pending
+                            });
+
+                            // Step 3: IMPORTANT! Immediately sign the user out.
+                            // This removes their session so they cannot access the main app.
+                            await Supabase.instance.client.auth.signOut();
+
+                            if (!mounted) return;
+
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(const SnackBar(
+                              content: Text(
+                                  'Email verified! Your account is pending admin approval.'),
+                              backgroundColor: Colors.green,
+                            ));
+
+                            // Step 4: Navigate to the pending screen.
+                            Navigator.of(context).pop(); // Close dialog
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PendingApprovalScreen()),
+                              (route) => false,
+                            );
+                          }
+                        } on AuthException catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  "Verification Failed: ${e.message}. Please ensure you have clicked the link in your email."),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content:
+                                  Text("An error occurred: ${e.toString()}"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } finally {
+                          // Ensure the loading indicator is always turned off
+                          if (mounted) {
+                            setStateInDialog(() {
+                              isVerifying = false;
+                            });
+                          }
+                        }
+                      },
+                      child: const Text('I HAVE VERIFIED'),
+                    ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await Supabase.instance.client.auth.resend(
+                      type: OtpType.signup,
+                      email: _emailController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Verification email resent.')));
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to resend: $e')));
+                  }
+                },
+                child: const Text('RESEND LINK'),
+              ),
+            ],
+          );
+        });
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Approximate Colors from the image
-    const Color primaryBrown = Color(0xFFFFFFFF); // white
-    const Color accentBeige =
-        Color(0xFFD2B48C); // Beige for primary button and borders
     const Color lightText = Colors.white;
     const Color hintText = Colors.white70;
-
-    // Define common input decoration
-    InputDecoration inputDecoration(String label) {
-      return InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: hintText),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 1.0, horizontal: 15.0),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.0),
-          borderSide: const BorderSide(color: accentBeige, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.0),
-          borderSide: const BorderSide(
-              color: Colors.white, width: 2.0), // Highlight focus
-        ),
-        filled: true, // Need filled = true to show fillColor
-        fillColor: fillColor
-            .withOpacity(0.05), // Match input background to main background
-      );
-    }
 
     return Scaffold(
       backgroundColor: appBackgroundColor,
       body: SafeArea(
-        // Avoid overlap with status bar/notches
         child: SingleChildScrollView(
-          // Allow scrolling if content overflows (e.g., keyboard)
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                // --- Logo ---
-                Container(
-                  padding: const EdgeInsets.all(10.0),
-                  margin: const EdgeInsets.only(bottom: 30.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0x8088BDF2),
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  child: const Text(
-                    'STOR\nARCH',
+          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10.0),
+                margin: const EdgeInsets.only(bottom: 5.0),
+                decoration: BoxDecoration(
+                  color: const Color(0x8088BDF2),
+                  borderRadius: BorderRadius.circular(15.0),
+                ),
+                child: const Text('STOR\nARCH',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: lightText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 2),
-
-                // --- Title ---
-                const Text(
-                  'Create An Account',
-                  textAlign: TextAlign.center,
+                        color: lightText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2)),
+              ),
+              const Text('Create An Account',
                   style: TextStyle(
-                    color: lightText,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                // --- Google Sign Up Button ---
-                ElevatedButton.icon(
-                  icon: const Icon(
-                    Icons.android,
-                    color: lightText,
-                  ), // Replace with actual Google icon if desired
-                  // icon: FaIcon(FontAwesomeIcons.google, color: lightText, size: 18), // Example using font_awesome_flutter
-                  label: const Text(
-                    'Create account with google',
-                    style: TextStyle(color: lightText, fontSize: 16),
-                  ),
-                  onPressed: () {
-                    // TO DO: Implement Google Sign Up Logic
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonColor, // Button background color
-                    foregroundColor: lightText, // Text and icon color
-                    // ignore: prefer_const_constructors
-                    padding: EdgeInsets.symmetric(
-                      vertical: 15,
-                      horizontal: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      side: BorderSide(
-                          color: borderColor.withOpacity(0.5),
-                          width: 2), // Border matching inputs
-                    ),
-                    elevation: 3, // Slight shadow
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // --- OR Separator ---
-                const Row(
-                  children: <Widget>[
-                    Expanded(child: Divider(color: hintText, thickness: 1)),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'Or',
-                        style: TextStyle(color: hintText),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: hintText, thickness: 1)),
-                  ],
-                ),
-                // ignore: prefer_const_constructors
-                SizedBox(height: 20),
-
-                // --- Email Field ---
-                TextField(
+                      color: lightText,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(color: lightText),
-                  decoration: inputDecoration('Email Address'),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Full Name Field ---
-                TextField(
+                  decoration: inputDecoration('Email Address')),
+              const SizedBox(height: 10),
+              TextField(
                   controller: _nameController,
                   keyboardType: TextInputType.name,
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(color: lightText),
-                  decoration: inputDecoration('Full Name'),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Password Field ---
-                TextField(
+                  decoration: inputDecoration('Full Name')),
+              const SizedBox(height: 10),
+              TextField(
                   controller: _passwordController,
-                  obscureText: true, // Hide password input
+                  obscureText: _isPasswordObscured,
                   style: const TextStyle(color: lightText),
-                  decoration: inputDecoration('Password'),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Confirm Password Field ---
-                TextField(
+                  decoration: inputDecoration('Password').copyWith(
+                      suffixIcon: IconButton(
+                          icon: Icon(
+                              _isPasswordObscured
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white70),
+                          onPressed: () => setState(() =>
+                              _isPasswordObscured = !_isPasswordObscured)))),
+              const SizedBox(height: 10),
+              TextField(
                   controller: _confirmPasswordController,
-                  obscureText: true,
+                  obscureText: _isConfirmPasswordObscured,
                   style: const TextStyle(color: lightText),
-                  decoration: inputDecoration('Confirm Password'),
+                  decoration: inputDecoration('Confirm Password').copyWith(
+                      suffixIcon: IconButton(
+                          icon: Icon(
+                              _isConfirmPasswordObscured
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white70),
+                          onPressed: () => setState(() =>
+                              _isConfirmPasswordObscured =
+                                  !_isConfirmPasswordObscured)))),
+              const SizedBox(height: 10),
+              _buildDropdown<String>(
+                  value: requestedRole,
+                  items: ['student', 'supervisor'],
+                  onChanged: (value) => setState(() => requestedRole = value!)),
+              const SizedBox(height: 10.0),
+              if (requestedRole == 'student')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: TextField(
+                      controller: _matricController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: inputDecoration('Matric Number')),
                 ),
-
-                const SizedBox(height: 20),
-                // --- Create Account Button ---
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_passwordController.text !=
-                          _confirmPasswordController.text) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Passwords do not match!')),
-                        );
-                        return;
-                      }
-
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                HomePage(onToggleTheme: () {},  key: null, uploadedDocuments: const [],)),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: buttonColor,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 15), // Remove horizontal padding
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      elevation: 5,
-                    ),
-                    child: const Text(
-                      'Create Account',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: primaryBrown,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- Login Link ---
-                Center(
-                  child: RichText(
-                    text: TextSpan(
+              const SizedBox(height: 10),
+              _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                          onPressed: _register,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonColor,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30.0)),
+                              elevation: 5),
+                          child: const Text('Create Account',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)))),
+              const SizedBox(height: 20),
+              RichText(
+                  text: TextSpan(
                       text: 'Already have an account? ',
                       style: const TextStyle(color: hintText, fontSize: 14),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: 'LOGIN',
-                          style: const TextStyle(
-                              color: lightText, // Make LOGIN brighter/whiter
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration
-                                  .underline, // Add underline like the image
-                              fontSize: 14),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              // TO DO: Implement navigation to Login Screen
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const LoginPage()),
-                              );
-                              // Example: Replace with actual navigation
-                              // Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-                              // Or if login replaces signup in the stack:
-                              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-                            },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20), // Add some padding at the bottom
-              ],
-            ),
+                      children: [
+                    TextSpan(
+                        text: 'LOGIN',
+                        style: const TextStyle(
+                            color: lightText,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                            fontSize: 14),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LoginPage())))
+                  ])),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: fillColor.withOpacity(0.05),
+        border: Border.all(color: const Color(0xFFD2B48C), width: 1.5),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: DropdownButton<String>(
+          dropdownColor: appBackgroundColor,
+          value: value,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+          isExpanded: true,
+          underline: const SizedBox(),
+          style: dropdownTextStyle,
+          items: items
+              .map((item) => DropdownMenuItem(
+                  value: item, child: Text(item, style: dropdownTextStyle)))
+              .toList(),
+          onChanged: onChanged),
     );
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "663818220762",
+    "project_id": "storarchauth",
+    "storage_bucket": "storarchauth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:663818220762:android:da21ac30f204b2dc7d21e3",
+        "android_client_info": {
+          "package_name": "com.example.storarch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoqfvTnTfj1EJ1o-buhNpxj5YZtNWrNnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

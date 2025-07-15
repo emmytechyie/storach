@@ -1,10 +1,5 @@
-// lib/settings_screen.dart
 import 'package:flutter/material.dart';
-// For a real app, you'd likely use a state management solution or shared_preferences
-// import 'package:shared_preferences/shared_preferences.dart';
-
-// Example: To navigate back to Login screen after logout
-// import 'login_page.dart'; // Assuming you have login_page.dart
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,176 +9,264 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // --- Define Colors (reuse or adapt from your theme) ---
+  // --- UI Colors ---
   static const Color darkScaffoldBackground = Color(0xFF1F1F1F);
-  static const Color darkSurfaceColor = Color(0xFF2C2C2E); // For cards/sections
+  static const Color darkSurfaceColor = Color(0xFF2C2C2E);
   static const Color darkPrimaryText = Colors.white;
   static const Color darkSecondaryText = Colors.white70;
-  static const Color accentColor = Colors.blueAccent; // Or your app's accent
+  static const Color accentColor = Colors.blueAccent;
   static const Color iconColor = Colors.white70;
-  
-  // --- State Variables for Settings ---
-  bool _notificationsEnabled = true; // Default or load from storage
-  bool _isDarkModeEnabled = true; // Default or load from storage
-  String _currentStudentLevel = '300 Level'; // Default or load from storage
 
-  // Available student levels
-  final List<String> _studentLevels = ['100 Level', '200 Level', '300 Level', '400 Level'];
+  // --- State Variables ---
+  bool _isLoading = true;
+  String _userName = 'Loading...';
+  String _userEmail = 'Loading...';
+
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
-    _loadSettings(); // Load initial settings (e.g., from SharedPreferences)
+    _getProfile();
   }
 
-  Future<void> _loadSettings() async {
-    // TO DO: Replace with actual loading from SharedPreferences or backend
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
-    // setState(() {
-    //   _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
-    //   _isDarkModeEnabled = prefs.getBool('isDarkModeEnabled') ?? true;
-    //   _currentStudentLevel = prefs.getString('studentLevel') ?? '300 Level';
-    // });
-    print("Settings loaded (mocked)");
-  }
+  /// Fetches the user's basic profile from Supabase.
+  Future<void> _getProfile() async {
+    if (!mounted) return;
+    setState(() { _isLoading = true; });
 
-  Future<void> _saveSetting(String key, dynamic value) async {
-    // TO DO: Replace with actual saving to SharedPreferences or backend
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
-    // if (value is bool) {
-    //   await prefs.setBool(key, value);
-    // } else if (value is String) {
-    //   await prefs.setString(key, value);
-    // }
-    print("Setting '$key' saved with value '$value' (mocked)");
-  }
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      // Simplified query to only get the full name
+      final data = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .single();
 
-
-  Future<void> _showChangeLevelDialog() async {
-    String? selectedLevel = _currentStudentLevel; // Pre-select current level
-
-    // If student is already at 400 level, maybe just show an info dialog
-    if (_currentStudentLevel == '400 Level') {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: darkSurfaceColor,
-            title: const Text('Student Level', style: TextStyle(color: darkPrimaryText)),
-            content: const Text('You are currently at the highest student level (400 Level).', style: TextStyle(color: darkSecondaryText)),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('OK', style: TextStyle(color: accentColor)),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          );
-        },
-      );
-      return;
+      if (mounted) {
+        setState(() {
+          _userName = data['full_name'] ?? 'No name set';
+          _userEmail = supabase.auth.currentUser!.email ?? 'No email found';
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error fetching profile: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
     }
+  }
 
-    // Allow changing to 400 level
-    await showDialog<String>(
+  /// Shows a dialog to edit the user's full name.
+  Future<void> _showEditProfileDialog() async {
+    final nameController = TextEditingController(text: _userName);
+    bool isSaving = false;
+
+    await showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: darkSurfaceColor,
-          title: const Text('Change Student Level', style: TextStyle(color: darkPrimaryText)),
-          content: StatefulBuilder( // Use StatefulBuilder to update dialog state
-            builder: (BuildContext context, StateSetter setStateDialog) {
-              return DropdownButton<String>(
-                value: selectedLevel,
-                dropdownColor: darkSurfaceColor,
-                isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down, color: iconColor),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: darkSurfaceColor,
+              title: const Text('Edit Full Name', style: TextStyle(color: darkPrimaryText)),
+              content: TextField(
+                controller: nameController,
+                autofocus: true,
                 style: const TextStyle(color: darkPrimaryText),
-                underline: Container(height: 1, color: darkSecondaryText.withOpacity(0.5)),
-                items: _studentLevels.map((String level) {
-                  // Only allow selecting "400 Level" if not already there, or current level
-                  bool isSelectable = (level == '400 Level' || level == _currentStudentLevel);
-                  return DropdownMenuItem<String>(
-                    value: level,
-                    enabled: isSelectable, // Disable other lower levels if already past them
-                    child: Text(
-                      level,
-                      style: TextStyle(color: isSelectable ? darkPrimaryText : darkSecondaryText.withOpacity(0.5)),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setStateDialog(() {
-                      selectedLevel = newValue;
-                    });
-                  }
-                },
-              );
-            },
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text('Confirm', style: TextStyle(color: accentColor)),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog first
-                if (selectedLevel != null && selectedLevel != _currentStudentLevel && selectedLevel == '400 Level') {
-                  _confirmLevelChange(selectedLevel!);
-                } else if (selectedLevel == _currentStudentLevel) {
-                  // No change
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('You can only upgrade to 400 Level from a lower level here.')),
-                  );
-                }
-              },
-            ),
-          ],
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  labelStyle: TextStyle(color: darkSecondaryText),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: darkSecondaryText),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
+                ),
+                isSaving 
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: accentColor)),
+                  )
+                : TextButton(
+                  onPressed: () async {
+                    final newName = nameController.text.trim();
+                    if (newName.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Name cannot be empty.'),
+                        backgroundColor: Colors.orange,
+                      ));
+                      return;
+                    }
+
+                    setStateDialog(() { isSaving = true; });
+
+                    try {
+                      final userId = supabase.auth.currentUser!.id;
+                      await supabase.from('profiles').update({'full_name': newName}).eq('id', userId);
+                      
+                      setState(() {
+                        _userName = newName;
+                      });
+
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Profile updated successfully!'),
+                        backgroundColor: Colors.green,
+                      ));
+
+                    } catch (error) {
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Failed to update profile: ${error.toString()}'),
+                        backgroundColor: Colors.red,
+                      ));
+                    } finally {
+                       setStateDialog(() { isSaving = false; });
+                    }
+                  },
+                  child: const Text('Save', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
         );
       },
     );
   }
 
-  Future<void> _confirmLevelChange(String newLevel) async {
-    bool? confirmed = await showDialog<bool>(
+  /// Shows a dialog to change the user's password.
+  Future<void> _showChangePasswordDialog() async {
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isSaving = false;
+    bool isNewPasswordObscured = true;
+    bool isConfirmPasswordObscured = true;
+
+    await showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: darkSurfaceColor,
-          title: const Text('Confirm Level Change', style: TextStyle(color: darkPrimaryText)),
-          content: Text(
-            'Are you sure you want to change your level to $newLevel? This may grant you access to new features and cannot be easily undone through this interface.',
-            style: const TextStyle(color: darkSecondaryText),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-            TextButton(
-              child: const Text('Confirm Change', style: TextStyle(color: accentColor)),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: darkSurfaceColor,
+              title: const Text('Change Password', style: TextStyle(color: darkPrimaryText)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: isNewPasswordObscured,
+                    style: const TextStyle(color: darkPrimaryText),
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      labelStyle: const TextStyle(color: darkSecondaryText),
+                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
+                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: darkSecondaryText)),
+                      suffixIcon: IconButton(
+                        icon: Icon(isNewPasswordObscured ? Icons.visibility_off : Icons.visibility, color: iconColor),
+                        onPressed: () {
+                          setStateDialog(() { isNewPasswordObscured = !isNewPasswordObscured; });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: isConfirmPasswordObscured,
+                    style: const TextStyle(color: darkPrimaryText),
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      labelStyle: const TextStyle(color: darkSecondaryText),
+                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
+                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: darkSecondaryText)),
+                      suffixIcon: IconButton(
+                        icon: Icon(isConfirmPasswordObscured ? Icons.visibility_off : Icons.visibility, color: iconColor),
+                        onPressed: () {
+                          setStateDialog(() { isConfirmPasswordObscured = !isConfirmPasswordObscured; });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
+                ),
+                isSaving 
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: accentColor)),
+                  )
+                : TextButton(
+                  onPressed: () async {
+                    final newPassword = newPasswordController.text.trim();
+                    final confirmPassword = confirmPasswordController.text.trim();
+
+                    if (newPassword.isEmpty || confirmPassword.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password fields cannot be empty.'), backgroundColor: Colors.orange));
+                      return;
+                    }
+                    if (newPassword.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.orange));
+                      return;
+                    }
+                    if (newPassword != confirmPassword) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match.'), backgroundColor: Colors.orange));
+                      return;
+                    }
+
+                    setStateDialog(() { isSaving = true; });
+
+                    try {
+                      await supabase.auth.updateUser(
+                        UserAttributes(password: newPassword),
+                      );
+                      
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Password updated successfully!'),
+                        backgroundColor: Colors.green,
+                      ));
+                    } catch (error) {
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Failed to update password: ${error.toString()}'),
+                        backgroundColor: Colors.red,
+                      ));
+                    } finally {
+                      setStateDialog(() { isSaving = false; });
+                    }
+                  },
+                  child: const Text('Save', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
         );
       },
     );
-
-    if (confirmed == true) {
-      setState(() {
-        _currentStudentLevel = newLevel;
-      });
-      _saveSetting('studentLevel', newLevel); // Save the new level
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Student level updated to $newLevel! You may now access new features.')),
-      );
-      // TO DO: Potentially refresh app state or navigate to a specific screen
-      // to reflect new feature access.
-    }
   }
 
   @override
@@ -195,105 +278,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: darkSurfaceColor,
         iconTheme: const IconThemeData(color: darkPrimaryText),
         elevation: 1,
-      ),
-      body: ListView(
-        children: <Widget>[
-          _buildSectionHeader('Account'),
-          _buildSettingsTile(
-            icon: Icons.person_outline,
-            title: 'Edit Profile',
-            subtitle: 'Update your personal information',
-            onTap: () {
-              // TO DO: Navigate to Edit Profile Screen
-              print('Navigate to Edit Profile');
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit Profile Tapped (Placeholder)')));
-            },
-          ),
-          _buildSettingsTile(
-            icon: Icons.school_outlined,
-            title: 'Student Level',
-            currentValue: _currentStudentLevel,
-            onTap: _showChangeLevelDialog,
-          ),
-          _buildSettingsTile(
-            icon: Icons.lock_outline,
-            title: 'Change Password',
-            onTap: () {
-              // TO DO: Navigate to Change Password Screen
-              print('Navigate to Change Password');
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Change Password Tapped (Placeholder)')));
-            },
-          ),
-
-          _buildSectionHeader('Notifications'),
-          _buildSwitchTile(
-            icon: Icons.notifications_outlined,
-            title: 'Push Notifications',
-            value: _notificationsEnabled,
-            onChanged: (bool value) {
-              setState(() => _notificationsEnabled = value);
-              _saveSetting('notificationsEnabled', value);
-            },
-          ),
-          // You could add more granular notification settings here
-
-          _buildSectionHeader('Appearance'),
-          _buildSwitchTile(
-            icon: Icons.brightness_6_outlined, // Or Icons.dark_mode_outlined
-            title: 'Dark Mode',
-            subtitle: _isDarkModeEnabled ? 'Enabled' : 'Disabled',
-            value: _isDarkModeEnabled,
-            onChanged: (bool value) {
-              setState(() => _isDarkModeEnabled = value);
-              _saveSetting('isDarkModeEnabled', value);
-              // TO DO: Actually apply theme change (e.g., using a ThemeProvider)
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(_isDarkModeEnabled ? 'Dark Mode Enabled' : 'Dark Mode Disabled')),
-              );
-            },
-          ),
-
-          _buildSectionHeader('Help & Support'),
-          _buildSettingsTile(
-            icon: Icons.help_outline,
-            title: 'Help Center / FAQs',
-            onTap: () {
-              // TO DO: Open URL or navigate to FAQs screen
-              print('Open Help Center');
-            },
-          ),
-          _buildSettingsTile(
-            icon: Icons.contact_support_outlined,
-            title: 'Contact Support',
-            onTap: () {
-              // TO DO: Open email client or contact form
-              print('Contact Support');
-            },
-          ),
-
-          _buildSectionHeader('About'),
-          _buildSettingsTile(
-            icon: Icons.info_outline,
-            title: 'App Version',
-            currentValue: '1.0.0', // Get from package_info_plus in real app
-            onTap: null, // Non-interactive or show more details
-          ),
-          _buildSettingsTile(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy',
-            onTap: () { /* TO DO: Open URL */ print('Open Privacy Policy'); },
-          ),
-          _buildSettingsTile(
-            icon: Icons.description_outlined,
-            title: 'Terms of Service',
-            onTap: () { /* TO DO: Open URL */ print('Open Terms of Service'); },
-          ),
-          const SizedBox(height: 10),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _getProfile,
+            tooltip: 'Refresh Profile',
+          )
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: accentColor))
+          : ListView(
+              children: <Widget>[
+                _buildSectionHeader('Account'),
+                _buildInfoTile(
+                  icon: Icons.account_circle_outlined,
+                  title: _userName,
+                  subtitle: _userEmail,
+                ),
+                _buildSettingsTile(
+                  icon: Icons.person_outline,
+                  title: 'Edit Profile Name',
+                  onTap: _showEditProfileDialog,
+                ),
+                _buildSettingsTile(
+                  icon: Icons.lock_outline,
+                  title: 'Change Password',
+                  onTap: _showChangePasswordDialog,
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
     );
   }
-
+  
+  // --- WIDGET BUILDERS ---
+  
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 20.0, bottom: 8.0),
@@ -309,14 +329,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildInfoTile({required IconData icon, required String title, String? subtitle}) {
+     return ListTile(
+        leading: Icon(icon, color: iconColor),
+        title: Text(title, style: const TextStyle(color: darkPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
+        subtitle: subtitle != null
+            ? Text(subtitle, style: TextStyle(color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
+            : null,
+      );
+  }
+
   Widget _buildSettingsTile({
     required IconData icon,
     required String title,
     String? subtitle,
-    String? currentValue, // For displaying a value on the right
+    String? currentValue,
     VoidCallback? onTap,
   }) {
-    return Material( // To get InkWell effect on the whole tile
+    return Material(
       color: Colors.transparent,
       child: ListTile(
         leading: Icon(icon, color: iconColor),
@@ -329,28 +359,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : (onTap != null ? const Icon(Icons.chevron_right, color: iconColor) : null),
         onTap: onTap,
       ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: iconColor),
-      title: Text(title, style: const TextStyle(color: darkPrimaryText, fontSize: 16)),
-      subtitle: subtitle != null
-          ? Text(subtitle, style: TextStyle(color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
-          : null,
-      value: value,
-      onChanged: onChanged,
-      activeColor: accentColor,
-      inactiveTrackColor: darkSecondaryText.withOpacity(0.3),
-      inactiveThumbColor: darkSecondaryText.withOpacity(0.7),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
     );
   }
 }
