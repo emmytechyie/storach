@@ -1,17 +1,8 @@
-// [CORRECTED AND FINAL StudentDashboard.dart]
-// Please replace the entire content of your file with this code.
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:storarch/screens/homepage_screen.dart';
-
-// 1. IMPORT YOUR ACTUAL SCREEN FILES
-// Make sure the paths are correct for your project structure.
 import 'package:storarch/screens/upload_screen.dart';
-import 'package:storarch/screens/approved_screen.dart'; // I see you named your widget 'Approved', so this file likely contains it.
-
-// Note: We have deleted the placeholder classes `UploadTopicScreen` and `ApprovedTopicScreen`
-// because we are now importing and using your real screens.
+import 'package:storarch/screens/approved_screen.dart'; 
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});

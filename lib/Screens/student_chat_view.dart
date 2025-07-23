@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:storarch/Screens/chatroom_screen.dart'; // Make sure path is correct
+import 'package:storarch/Screens/chatroom_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentChatView extends StatefulWidget {

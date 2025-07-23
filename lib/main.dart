@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:storarch/Screens/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'Screens/landing_screen.dart';
+//import 'Screens/landing_screen.dart';
 
 
 Future<void> main() async {

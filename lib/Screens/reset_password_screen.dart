@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:storarch/constants.dart';
-import 'login_screen.dart'; // Import LoginPage to navigate back
+import 'login_screen.dart'; 
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});

@@ -1,14 +1,10 @@
-// [FINAL and COMPLETE LoginPage.dart]
-
-// ignore_for_file: avoid_print
-
 import 'package:flutter/material.dart';
-import 'package:storarch/Screens/studentDashboard.dart'; // Import for the student's new home
-import 'package:storarch/Screens/homepage_screen.dart'; // Import for the supervisor's home
+import 'package:storarch/Screens/studentDashboard.dart'; 
+import 'package:storarch/Screens/homepage_screen.dart'; 
 import 'package:storarch/constants.dart';
 import 'signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'forgot_password_screen.dart'; // ADDED: Import the new screen
+import 'forgot_password_screen.dart'; 
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'package:storarch/Screens/homepage_screen.dart';
 import 'package:storarch/Screens/login_screen.dart';
 import 'package:storarch/Screens/pending_approval_screen.dart';

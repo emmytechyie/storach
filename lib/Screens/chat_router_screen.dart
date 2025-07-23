@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:storarch/Screens/SupervisorChatListScreen.dart';
-// ✅ Import the new student chat view
 import 'package:storarch/Screens/student_chat_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,12 +11,10 @@ class ChatRouterScreen extends StatefulWidget {
 }
 
 class _ChatRouterScreenState extends State<ChatRouterScreen> {
-  late final Future<Map<String, dynamic>?> _userRoleFuture;
 
   @override
   void initState() {
     super.initState();
-    _userRoleFuture = _fetchUserRole();
   }
 
   Future<Map<String, dynamic>?> _fetchUserRole() async {

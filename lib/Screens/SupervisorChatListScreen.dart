@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'chatroom_screen.dart'; // Make sure this path is correct
+import 'chatroom_screen.dart'; 
 
 class SupervisorChatListScreen extends StatefulWidget {
   const SupervisorChatListScreen({super.key});
@@ -11,14 +11,10 @@ class SupervisorChatListScreen extends StatefulWidget {
 }
 
 class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
-  // ✅ CHANGE: Made the supabase client final for good practice
   final supabase = Supabase.instance.client;
 
-  // ✅ CHANGE: Using a FutureBuilder is a more robust Flutter pattern
-  // This avoids managing _isLoading and _students state variables separately.
   late final Future<List<Map<String, dynamic>>> _assignedStudentsFuture;
 
-  // ✅ CHANGE: Get the supervisor's ID once and store it.
   late final String _supervisorId;
 
   @override
@@ -26,10 +22,9 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
     super.initState();
     // Ensures currentUser is not null before proceeding
     if (supabase.auth.currentUser == null) {
-      // Handle case where user is not logged in, maybe redirect to login
-      // For now, we'll initialize with an empty future to avoid errors.
+      
       _supervisorId = '';
-      _assignedStudentsFuture = Future.value([]); // Return an empty list
+      _assignedStudentsFuture = Future.value([]); 
       return;
     }
 
@@ -39,7 +34,7 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
 
   Future<List<Map<String, dynamic>>> _loadAssignedStudents() async {
     try {
-      // The query itself was very good! No changes needed here.
+      
       final data = await supabase
           .from('supervisor_assignments')
           // This tells Supabase: "Join profiles using the foreign key on our 'student_id' column"
@@ -52,8 +47,6 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
       // Supabase returns a List<dynamic>, so we cast it safely.
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
-      print("❌ Error loading assigned students: $e");
-      // Show an error message to the user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -61,7 +54,7 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
               backgroundColor: Colors.red),
         );
       }
-      return []; // Return an empty list on error
+      return []; 
     }
   }
 
@@ -88,9 +81,7 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
 
           final students = snapshot.data!;
 
-          return // Find the ListView.builder inside your SupervisorChatListScreen's build method
-// and replace it with this entire block.
-
+          return 
               ListView.builder(
             itemCount: students.length,
             itemBuilder: (context, index) {
@@ -109,20 +100,13 @@ class _SupervisorChatListScreenState extends State<SupervisorChatListScreen> {
                 title: Text(studentName),
                 subtitle: const Text("Tap to open chat"),
                 trailing: const Icon(Icons.chat_bubble_outline),
-                // IN: SupervisorChatListScreen.dart
-
-// ... inside your ListView.builder ...
                 onTap: () {
-                  // We need the supervisor's name. Let's get it from the user profile.
-                  // Note: For this to be perfect, you should fetch the supervisor's name
-                  // in initState, but for now, we can use the email as a placeholder.
                   final supervisorProfile =
                       supabase.auth.currentUser?.userMetadata;
                   final supervisorName =
                       supervisorProfile?['full_name'] as String? ??
                           'Supervisor';
 
-                  // --- THIS IS THE NEW, CORRECT NAVIGATION LOGIC ---
                   Navigator.push(
                     context,
                     MaterialPageRoute(
