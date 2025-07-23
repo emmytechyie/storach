@@ -1,5 +1,3 @@
-// lib/Screens/edit_project_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,7 +17,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   late final TextEditingController _titleController;
   bool _isLoading = false;
 
-  // Reusing your theme colors
   static const Color darkScaffoldBackground = Color(0xFF1F1F1F);
   static const Color darkSurfaceColor = Color(0xFF2C2C2E);
   static const Color darkPrimaryText = Colors.white;
@@ -29,7 +26,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-populate the text controllers with the existing project data
     _nameController =
         TextEditingController(text: widget.project['student_name'] ?? '');
     _supervisorController =
@@ -57,7 +53,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   }
 
   Future<void> _updateProjectDetails() async {
-    // 1. Validate the form
+    // Validation of form
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -65,14 +61,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 2. Prepare the data to be updated
+      // Prepare the data to be updated
       final updatedData = {
         'student_name': _nameController.text.trim(),
         'supervisor': _supervisorController.text.trim(),
         'title': _titleController.text.trim(),
       };
 
-      // 3. Perform the update operation in Supabase
+      // Perform the update operation in Supabase
       await Supabase.instance.client
           .from('projects')
           .update(updatedData)
@@ -80,7 +76,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
 
       _showSnackbar('Project details updated successfully!');
 
-      // 4. Go back to the previous screen on success
+      // Go back to the previous screen on success
       if (mounted) {
         Navigator.of(context).pop();
       }

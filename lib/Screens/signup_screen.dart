@@ -139,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                         try {
                           // Step 1: Temporarily sign in the user.
-                          // This will FAIL if they haven't clicked the email link yet, which is perfect.
+                          // This will FAIL if they haven't clicked the email link yet
                           // This gives us a valid session to write to the 'profiles' table.
                           final authResponse = await Supabase
                               .instance.client.auth
@@ -149,7 +149,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           );
 
                           if (authResponse.user != null) {
-                            // Step 2: Now that we are authenticated, create the user's profile.
+                            // Now that we are authenticated, create the user's profile.
                             await Supabase.instance.client
                                 .from('profiles')
                                 .upsert({
@@ -162,7 +162,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               'status': 'pending', // Set status to pending
                             });
 
-                            // Step 3: IMPORTANT! Immediately sign the user out.
+                            // IMPORTANT! Immediately sign the user out.
                             // This removes their session so they cannot access the main app.
                             await Supabase.instance.client.auth.signOut();
 
@@ -175,8 +175,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               backgroundColor: Colors.green,
                             ));
 
-                            // Step 4: Navigate to the pending screen.
-                            Navigator.of(context).pop(); // Close dialog
+                            // Navigate to the pending screen.
+                            Navigator.of(context).pop();
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
                                   builder: (_) =>

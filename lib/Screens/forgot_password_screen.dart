@@ -14,7 +14,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
 
-  // Re-using UI constants from LoginPage for consistency
   static const Color lightBeige = Color(0xFFD7CCC8);
   static const Color textBrown = Color(0xFFEFEBE9);
   Color hintText = Colors.white70;

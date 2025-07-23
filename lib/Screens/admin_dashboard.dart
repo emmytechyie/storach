@@ -78,7 +78,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  // The new, improved _approveUser function
   Future<void> _approveUser(String id, String newRole,
       {String? studentType, String? assignedSupervisor}) async {
     if (!mounted) return;
@@ -90,13 +89,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       // Single, atomic call to our new database function
       await Supabase.instance.client.rpc(
-        'approve_and_assign_user', // The name of the function in PostgreSQL
+        'approve_and_assign_user',
         params: {
           'user_id_to_approve': id,
           'new_user_role': newRole,
-          'new_student_type': studentType, // Will be null if not provided
-          'supervisor_to_assign':
-              assignedSupervisor, // Will be null if not assigned
+          'new_student_type': studentType,
+          'supervisor_to_assign': assignedSupervisor,
         },
       );
 
@@ -107,16 +105,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ));
       }
     } on PostgrestException catch (e) {
-      // Be more specific on the error type
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          // Use the error message from Supabase for better debugging
           content: Text('Error approving user: ${e.message}'),
           backgroundColor: Colors.red,
         ));
       }
     } catch (e) {
-      // Catch any other generic errors
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('An unexpected error occurred: $e'),
@@ -185,8 +180,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final userId = user['id'] as String;
     final isStudent = user['requested_role'] == 'student';
 
-    // No need for 'selectedType' variable here anymore, we'll get it directly.
-
     return StatefulBuilder(
       builder: (context, cardSetState) {
         // Get the currently selected student type for this specific card
@@ -209,7 +202,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Text('Matric No: ${user['matric_number'] ?? 'N/A'}'),
                 if (isStudent) ...[
                   const SizedBox(height: 12),
-                  // Dropdown for Student Type (no changes here)
+                  // Dropdown for Student Type
                   DropdownButtonFormField<String>(
                     value: currentSelectedType,
                     decoration: const InputDecoration(
@@ -229,18 +222,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       });
                     },
                   ),
-
-                  // --- THIS IS THE MAIN CHANGE ---
-                  // We no longer use an `if` statement to show/hide this.
-                  // It is now ALWAYS visible.
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: _selectedSupervisors[userId],
-                    // The `decoration` helps tell the user why it might be disabled
                     decoration: InputDecoration(
                       labelText: 'Assign Supervisor',
                       border: const OutlineInputBorder(),
-                      // Add a hint to guide the admin
                       hintText: currentSelectedType != 'Final Year Student'
                           ? 'Select Final Year Student first'
                           : '',
@@ -252,7 +239,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   child: Text(sup['full_name'] ?? 'Unnamed'),
                                 ))
                         .toList(),
-                    // This is the magic: `onChanged` is set to `null` to disable the field.
                     // It only becomes active when the correct student type is selected.
                     onChanged: currentSelectedType == 'Final Year Student'
                         ? (value) {
@@ -260,15 +246,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               _selectedSupervisors[userId] = value;
                             });
                           }
-                        : null, // Setting onChanged to null disables the dropdown
+                        : null,
                   ),
-                  // --- END OF CHANGE ---
                 ],
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // ... your IconButton code remains the same ...
                     IconButton(
                       icon: const Icon(Icons.check, color: Colors.green),
                       onPressed: () {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:storarch/Screens/studentDashboard.dart'; 
-import 'package:storarch/Screens/homepage_screen.dart'; 
+import 'package:storarch/Screens/studentDashboard.dart';
+import 'package:storarch/Screens/homepage_screen.dart';
 import 'package:storarch/constants.dart';
 import 'signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'forgot_password_screen.dart'; 
+import 'forgot_password_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoading = false;
   bool _isPasswordObscured = true;
 
-  // --- UI Constants ---
+  // UI Constants
   static const Color lightBeige = Color(0xFFD7CCC8);
   static const Color textBrown = Color(0xFFEFEBE9);
   static const Color primaryBrown = Color(0xFFFFFFFF);
@@ -52,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
       final userId = response.user!.id;
       final data = await Supabase.instance.client
           .from('profiles')
-          .select('role') // You can also select 'status' here if needed
+          .select('role')
           .eq('id', userId)
           .single();
 
@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
               onToggleTheme: () {}, // Pass your actual theme function
               uploadedDocuments: const [],
               fullName: fullName,
-              builder: (context) {}, // Pass the correct variable
+              builder: (context) {},
             ),
           ),
           (route) => false,
@@ -223,7 +223,6 @@ class _LoginPageState extends State<LoginPage> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        // --- MODIFIED ---
                         onPressed: () {
                           // Navigate to the Forgot Password screen
                           Navigator.push(
@@ -234,7 +233,6 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           );
                         },
-                        // --- END OF MODIFICATION ---
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,

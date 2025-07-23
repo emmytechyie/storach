@@ -27,39 +27,32 @@ class _SplashScreenState extends State<SplashScreen> {
         Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
       if (event == AuthChangeEvent.passwordRecovery) {
-        print("🔐 Password recovery event triggered");
         _navigateToResetScreen();
       }
     });
 
-    // ✅ Start normal splash logic
+    // Start normal splash logic
     _handleStartupLogic();
 
-    // ✅ Handle runtime deep links (warm start)
-    AppLinks().uriLinkStream.listen((uri) {
-      print("📡 Runtime deep link: $uri");
-      // Do nothing here — Supabase handles this via the above listener
-    });
+    // Handle runtime deep links (warm start)
+    AppLinks().uriLinkStream.listen((uri) {});
   }
 
   Future<void> _handleStartupLogic() async {
     try {
       final appLinks = AppLinks();
+      // ignore: unused_local_variable
       final initialLink = await appLinks.getInitialLink();
-      print("🔗 Initial link: $initialLink");
 
       // Supabase will catch this link and emit AuthChangeEvent
       final session = Supabase.instance.client.auth.currentSession;
 
       if (session == null) {
-        print("➡️ No session. Navigating to login.");
         _navigateToLogin();
       } else {
-        print("🔐 Active session detected.");
         await _redirectBasedOnSession(session.user);
       }
     } catch (e, stack) {
-      print("🚨 Splash error: $e\n$stack");
       _navigateToLogin();
     }
   }
@@ -106,7 +99,6 @@ class _SplashScreenState extends State<SplashScreen> {
         throw Exception('Unknown status');
       }
     } catch (e) {
-      print("⚠️ Failed to route based on profile: $e");
       await Supabase.instance.client.auth.signOut();
       _navigateToLogin();
     }

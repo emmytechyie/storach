@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:storarch/screens/homepage_screen.dart';
 import 'package:storarch/screens/upload_screen.dart';
-import 'package:storarch/screens/approved_screen.dart'; 
+import 'package:storarch/screens/approved_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -19,7 +19,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   @override
   void initState() {
-    // ✅ ADD THIS LINE
     print("--- StudentDashboard initState has started! ---");
 
     super.initState();
@@ -42,12 +41,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
           .eq('id', userId)
           .single();
 
-      // ✅ --- ADD THIS DEBUGGING LINE ---
       print(
           "DATABASE CHECK: Raw value for 'student_type' is: ->'${data['student_type']}'<-");
-      // The arrows ->' '<- will make invisible spaces visible.
-      // ------------------------------------
-
       if (mounted) {
         bool isFinalYear = false; // Default to false
 
@@ -60,7 +55,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
         // ✅ --- ADD THIS SECOND DEBUGGING LINE ---
         print(
             "LOGIC CHECK: Is this user a Final Year Student? -> $isFinalYear");
-        // ------------------------------------------
 
         setState(() {
           _isFinalYearStudent = isFinalYear;
@@ -121,7 +115,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       icon: Icons.upload_file,
                       isEnabled: _isFinalYearStudent,
                       onTap: () {
-                        // 2. NAVIGATE TO YOUR REAL WIDGET
+                        // NAVIGATE TO YOUR REAL WIDGET
                         Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (_) => const UploadDocumentScreen()),
@@ -136,8 +130,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       icon: Icons.check_circle_outline,
                       isEnabled: _isFinalYearStudent,
                       onTap: () {
-                        // 2. NAVIGATE TO YOUR REAL WIDGET
-                        // From your code, it looks like your widget is named 'Approved'.
+                        // NAVIGATE TO YOUR REAL WIDGET
                         Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (_) => const ApprovedTopicsScreen()),
@@ -155,19 +148,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     ),
                     const SizedBox(height: 16),
                     _buildFeatureCard(
-                      // ✅ RENAMED FOR CLARITY
                       title: 'Proceed to Homepage',
-                      icon: Icons.home_outlined, // Changed the icon to match
+                      icon: Icons.home_outlined,
                       isEnabled: true,
                       onTap: () {
-                        // ✅ THIS IS THE CORRECTED LOGIC
-
-                        // 1. Get the current user's full name from Supabase auth metadata
+                        //Get the current user's full name from Supabase auth metadata
                         final fullName = Supabase.instance.client.auth
                                 .currentUser?.userMetadata?['full_name'] ??
                             'Student';
 
-                        // 2. Navigate to your existing HomePage, passing the required parameters
+                        // Navigate to your existing HomePage, passing the required parameters
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => HomePage(
@@ -186,7 +176,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  /// A reusable widget to build the feature cards, showing a disabled state.
+  // A reusable widget to build the feature cards, showing a disabled state.
   Widget _buildFeatureCard({
     required String title,
     required IconData icon,

@@ -80,7 +80,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
       // Upload to Supabase Storage
       final storageResponse = await supabase.storage
-          .from('documents') // your storage bucket name
+          .from('documents') // storage bucket name
           .uploadBinary(filePath, fileBytes);
 
       if (storageResponse.isEmpty) {

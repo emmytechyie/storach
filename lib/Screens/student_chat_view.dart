@@ -28,7 +28,7 @@ class _StudentChatViewState extends State<StudentChatView> {
     }
 
     try {
-      // Step 1: Get the current student's profile (we need their name)
+      // Get the current student's profile (we need their name)
       final studentProfile = await supabase
           .from('profiles')
           .select('full_name')
@@ -36,7 +36,7 @@ class _StudentChatViewState extends State<StudentChatView> {
           .single();
       final studentName = studentProfile['full_name'] ?? 'Me';
 
-      // Step 2: Find the supervisor assigned to this student
+      // Find the supervisor assigned to this student
       final assignment = await supabase
           .from('supervisor_assignments')
           .select(
@@ -50,22 +50,24 @@ class _StudentChatViewState extends State<StudentChatView> {
 
       if (!mounted) return;
 
-      // Step 3: Navigate directly to the chat room with all the details
+      // Navigate directly to the chat room with all the details
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => ChatroomScreen(
-            isSupervisorView: false, // The student is viewing, so this is FALSE
+            isSupervisorView: false,
             studentId: currentUser.id,
             studentName: studentName,
-            supervisorName: supervisorName, supervisorInitial: '',
-            chatPartnerName: '', supervisorId: '', String: null,
+            supervisorName: supervisorName,
+            supervisorInitial: '',
+            chatPartnerName: '',
+            supervisorId: '',
+            String: null,
           ),
         ),
       );
     } catch (e) {
       // Handle errors, e.g., student has no supervisor assigned
-      print("Error fetching supervisor: $e");
       _showError(
           "Could not find an assigned supervisor. Please contact an admin.");
     }
@@ -81,7 +83,6 @@ class _StudentChatViewState extends State<StudentChatView> {
           actions: [
             TextButton(
               onPressed: () {
-                // Pop the dialog and the chat view itself to return to the home page
                 Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },

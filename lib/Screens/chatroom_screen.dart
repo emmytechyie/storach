@@ -8,7 +8,6 @@ import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Your ChatMessage class is perfect, no changes needed.
 class ChatMessage {
   final String id;
   final String? text;
@@ -39,7 +38,6 @@ class ChatroomScreen extends StatefulWidget {
   final String supervisorName;
   final bool isSupervisorView;
 
-  // ✅ FIXED and cleaned up constructor
   const ChatroomScreen({
     super.key,
     required this.studentId,
@@ -57,7 +55,7 @@ class ChatroomScreen extends StatefulWidget {
 }
 
 class _ChatroomScreenState extends State<ChatroomScreen> {
-  // --- UI Constants ---
+  // UI Constants
   static const Color darkScaffoldBackground = Color(0xFF121B22);
   static const Color appBarColor = Color(0xFF202C33);
   static const Color inputAreaColor = Color(0xFF202C33);
@@ -68,7 +66,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
   static const Color iconColor = Color(0xFFB0B3B8);
   static const Color accentColor = Color(0xFF00A884);
 
-  // --- State Variables ---
   final List<ChatMessage> _messages = [];
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -82,7 +79,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
   bool _isSending = false; // This now covers both text and file sending
   RealtimeChannel? _messageChannel;
 
-  // ✅ NEW: State variable to hold the selected file before sending
+  // State variable to hold the selected file before sending
   File? _stagedFile;
 
   @override
@@ -108,10 +105,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     super.dispose();
   }
 
-  // --- Core Logic ---
-
   Future<void> _initializeChat() async {
-    // This logic remains the same
     final supabase = Supabase.instance.client;
     if (widget.isSupervisorView) {
       _otherUserId = widget.studentId;
@@ -166,7 +160,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
   }
 
   void _setupRealtimeListener() {
-    // This logic remains the same
     if (_otherUserId == null) return;
     _messageChannel = Supabase.instance.client
         .channel('public:messages')
@@ -210,7 +203,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
   }
 
   ChatMessage _mapToChatMessage(Map<String, dynamic> msg) {
-    // This logic remains the same
     final isMe = msg['sender_id'] == _myUserId;
     return ChatMessage(
       id: msg['id'].toString(),
@@ -225,10 +217,9 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     );
   }
 
-  // ✅ NEW: Unified sending function for text and/or files.
+  // Unified sending function for text and/or files.
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
-    // Guard clause: Do nothing if there's no text AND no file.
     if (text.isEmpty && _stagedFile == null) {
       return;
     }
@@ -241,7 +232,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     String? fileTypeForDb;
 
     try {
-      // Step 1: Upload the file if one is staged
+      // Upload the file if one is staged
       if (_stagedFile != null) {
         final file = _stagedFile!;
         final fName = p.basename(file.path);
@@ -264,22 +255,21 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
             .getPublicUrl(storagePath);
       }
 
-      // Step 2: Insert the message record into the database
+      // Insert the message record into the database
       await Supabase.instance.client.from('messages').insert({
         'sender_id': _myUserId,
         'receiver_id': _otherUserId,
         'message': text.isNotEmpty ? text : null,
         'file_url': fileUrl,
         'file_name': fileName,
-        'file_type':
-            fileTypeForDb ?? 'text', // Use file type or default to 'text'
+        'file_type': fileTypeForDb ?? 'text',
       });
 
-      // Step 3: Clean up the UI state
+      // Clean up the UI state
       _textController.clear();
       if (mounted) {
         setState(() {
-          _stagedFile = null; // Clear the staged file and remove the preview
+          _stagedFile = null;
         });
       }
     } catch (e) {
@@ -298,7 +288,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     }
   }
 
-  // ✅ NEW: This function now ONLY picks the file and stages it for sending.
+  // This function now ONLY picks the file and stages it for sending.
   Future<void> _pickFile(FileType intentType) async {
     FileType pickerType;
     List<String>? pickerExtensions;
@@ -327,7 +317,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
       );
 
       if (result != null && result.files.single.path != null) {
-        // Instead of uploading, just update the state to show the preview
         setState(() {
           _stagedFile = File(result.files.single.path!);
         });
@@ -372,13 +361,9 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     );
   }
 
-  // All other logic functions like _confirmDeleteMessage, _scrollToStart, etc.
-  // remain the same.
-
-  // --- UI Builder Methods ---
+  // UI Builder Methods
   @override
   Widget build(BuildContext context) {
-    // This remains the same
     final appBarTitle =
         widget.isSupervisorView ? widget.studentName : widget.supervisorName;
     final appBarInitial =
@@ -422,7 +407,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
                   fontWeight: FontWeight.w500),
             ),
             const Text(
-              'Online', // You can make this dynamic later
+              'Online', // make this dynamic later
               style: TextStyle(color: secondaryTextColor, fontSize: 12),
             ),
           ],
@@ -455,7 +440,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     );
   }
 
-  // ✅ MODIFIED: The input area is now a Column to hold the preview.
+  // The input area is now a Column to hold the preview.
   Widget _buildInputArea() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
@@ -464,9 +449,8 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // NEW: Show the preview only if a file is staged
+            // Show the preview only if a file is staged
             if (_stagedFile != null) _buildFilePreview(),
-            // The original input row
             Row(
               children: <Widget>[
                 Expanded(
@@ -528,7 +512,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     );
   }
 
-  // ✅ NEW: Widget to display the staged file preview in the input area.
   Widget _buildFilePreview() {
     final file = _stagedFile!;
     final fileName = p.basename(file.path);
@@ -596,10 +579,7 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
     );
   }
 
-  // The rest of your UI building methods remain the same
-  // (e.g., _buildMessageItem, _buildTextBlock, etc.)
   Widget _buildMessageItem(ChatMessage message) {
-    // This is the correct version with the Wrap widget
     final isSentByMe = message.isSentByMe;
     final alignment =
         isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
@@ -656,7 +636,6 @@ class _ChatroomScreenState extends State<ChatroomScreen> {
   }
 
   Widget _buildTextBlock(ChatMessage message) {
-    // This is the correct version with the Wrap widget
     final timeFormat = DateFormat('hh:mm a');
     final timeStr = timeFormat.format(message.timestamp.toLocal());
     if (message.text == null || message.text!.isEmpty) {

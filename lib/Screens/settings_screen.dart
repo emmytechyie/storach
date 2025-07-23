@@ -9,7 +9,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // --- UI Colors ---
+  // UI Colors
   static const Color darkScaffoldBackground = Color(0xFF1F1F1F);
   static const Color darkSurfaceColor = Color(0xFF2C2C2E);
   static const Color darkPrimaryText = Colors.white;
@@ -17,7 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const Color accentColor = Colors.blueAccent;
   static const Color iconColor = Colors.white70;
 
-  // --- State Variables ---
+  // State Variables
   bool _isLoading = true;
   String _userName = 'Loading...';
   String _userEmail = 'Loading...';
@@ -33,7 +33,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Fetches the user's basic profile from Supabase.
   Future<void> _getProfile() async {
     if (!mounted) return;
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final userId = supabase.auth.currentUser!.id;
@@ -59,12 +61,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
-  /// Shows a dialog to edit the user's full name.
+  // dialog to edit the user's full name.
   Future<void> _showEditProfileDialog() async {
     final nameController = TextEditingController(text: _userName);
     bool isSaving = false;
@@ -72,86 +76,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: darkSurfaceColor,
-              title: const Text('Edit Full Name', style: TextStyle(color: darkPrimaryText)),
-              content: TextField(
-                controller: nameController,
-                autofocus: true,
-                style: const TextStyle(color: darkPrimaryText),
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  labelStyle: TextStyle(color: darkSecondaryText),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: accentColor),
-                  ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: darkSecondaryText),
-                  ),
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AlertDialog(
+            backgroundColor: darkSurfaceColor,
+            title: const Text('Edit Full Name',
+                style: TextStyle(color: darkPrimaryText)),
+            content: TextField(
+              controller: nameController,
+              autofocus: true,
+              style: const TextStyle(color: darkPrimaryText),
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                labelStyle: TextStyle(color: darkSecondaryText),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: accentColor),
+                ),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: darkSecondaryText),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
-                ),
-                isSaving 
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: accentColor)),
-                  )
-                : TextButton(
-                  onPressed: () async {
-                    final newName = nameController.text.trim();
-                    if (newName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Name cannot be empty.'),
-                        backgroundColor: Colors.orange,
-                      ));
-                      return;
-                    }
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel',
+                    style: TextStyle(color: darkSecondaryText)),
+              ),
+              isSaving
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: accentColor)),
+                    )
+                  : TextButton(
+                      onPressed: () async {
+                        final newName = nameController.text.trim();
+                        if (newName.isEmpty) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                            content: Text('Name cannot be empty.'),
+                            backgroundColor: Colors.orange,
+                          ));
+                          return;
+                        }
 
-                    setStateDialog(() { isSaving = true; });
+                        setStateDialog(() {
+                          isSaving = true;
+                        });
 
-                    try {
-                      final userId = supabase.auth.currentUser!.id;
-                      await supabase.from('profiles').update({'full_name': newName}).eq('id', userId);
-                      
-                      setState(() {
-                        _userName = newName;
-                      });
+                        try {
+                          final userId = supabase.auth.currentUser!.id;
+                          await supabase
+                              .from('profiles')
+                              .update({'full_name': newName}).eq('id', userId);
 
-                      if (!mounted) return;
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Profile updated successfully!'),
-                        backgroundColor: Colors.green,
-                      ));
+                          setState(() {
+                            _userName = newName;
+                          });
 
-                    } catch (error) {
-                      if (!mounted) return;
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Failed to update profile: ${error.toString()}'),
-                        backgroundColor: Colors.red,
-                      ));
-                    } finally {
-                       setStateDialog(() { isSaving = false; });
-                    }
-                  },
-                  child: const Text('Save', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          }
-        );
+                          if (!mounted) return;
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                            content: Text('Profile updated successfully!'),
+                            backgroundColor: Colors.green,
+                          ));
+                        } catch (error) {
+                          if (!mounted) return;
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Failed to update profile: ${error.toString()}'),
+                            backgroundColor: Colors.red,
+                          ));
+                        } finally {
+                          setStateDialog(() {
+                            isSaving = false;
+                          });
+                        }
+                      },
+                      child: const Text('Save',
+                          style: TextStyle(
+                              color: accentColor, fontWeight: FontWeight.bold)),
+                    ),
+            ],
+          );
+        });
       },
     );
   }
 
-  /// Shows a dialog to change the user's password.
+  // dialog to change the user's password.
   Future<void> _showChangePasswordDialog() async {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -162,109 +179,148 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: darkSurfaceColor,
-              title: const Text('Change Password', style: TextStyle(color: darkPrimaryText)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: isNewPasswordObscured,
-                    style: const TextStyle(color: darkPrimaryText),
-                    decoration: InputDecoration(
-                      labelText: 'New Password',
-                      labelStyle: const TextStyle(color: darkSecondaryText),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: darkSecondaryText)),
-                      suffixIcon: IconButton(
-                        icon: Icon(isNewPasswordObscured ? Icons.visibility_off : Icons.visibility, color: iconColor),
-                        onPressed: () {
-                          setStateDialog(() { isNewPasswordObscured = !isNewPasswordObscured; });
-                        },
-                      ),
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AlertDialog(
+            backgroundColor: darkSurfaceColor,
+            title: const Text('Change Password',
+                style: TextStyle(color: darkPrimaryText)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: isNewPasswordObscured,
+                  style: const TextStyle(color: darkPrimaryText),
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    labelStyle: const TextStyle(color: darkSecondaryText),
+                    focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: accentColor)),
+                    enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: darkSecondaryText)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                          isNewPasswordObscured
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: iconColor),
+                      onPressed: () {
+                        setStateDialog(() {
+                          isNewPasswordObscured = !isNewPasswordObscured;
+                        });
+                      },
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: confirmPasswordController,
-                    obscureText: isConfirmPasswordObscured,
-                    style: const TextStyle(color: darkPrimaryText),
-                    decoration: InputDecoration(
-                      labelText: 'Confirm New Password',
-                      labelStyle: const TextStyle(color: darkSecondaryText),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: darkSecondaryText)),
-                      suffixIcon: IconButton(
-                        icon: Icon(isConfirmPasswordObscured ? Icons.visibility_off : Icons.visibility, color: iconColor),
-                        onPressed: () {
-                          setStateDialog(() { isConfirmPasswordObscured = !isConfirmPasswordObscured; });
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: darkSecondaryText)),
                 ),
-                isSaving 
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: accentColor)),
-                  )
-                : TextButton(
-                  onPressed: () async {
-                    final newPassword = newPasswordController.text.trim();
-                    final confirmPassword = confirmPasswordController.text.trim();
-
-                    if (newPassword.isEmpty || confirmPassword.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password fields cannot be empty.'), backgroundColor: Colors.orange));
-                      return;
-                    }
-                    if (newPassword.length < 6) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.orange));
-                      return;
-                    }
-                    if (newPassword != confirmPassword) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match.'), backgroundColor: Colors.orange));
-                      return;
-                    }
-
-                    setStateDialog(() { isSaving = true; });
-
-                    try {
-                      await supabase.auth.updateUser(
-                        UserAttributes(password: newPassword),
-                      );
-                      
-                      if (!mounted) return;
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Password updated successfully!'),
-                        backgroundColor: Colors.green,
-                      ));
-                    } catch (error) {
-                      if (!mounted) return;
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Failed to update password: ${error.toString()}'),
-                        backgroundColor: Colors.red,
-                      ));
-                    } finally {
-                      setStateDialog(() { isSaving = false; });
-                    }
-                  },
-                  child: const Text('Save', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: isConfirmPasswordObscured,
+                  style: const TextStyle(color: darkPrimaryText),
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    labelStyle: const TextStyle(color: darkSecondaryText),
+                    focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: accentColor)),
+                    enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: darkSecondaryText)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                          isConfirmPasswordObscured
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: iconColor),
+                      onPressed: () {
+                        setStateDialog(() {
+                          isConfirmPasswordObscured =
+                              !isConfirmPasswordObscured;
+                        });
+                      },
+                    ),
+                  ),
                 ),
               ],
-            );
-          }
-        );
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel',
+                    style: TextStyle(color: darkSecondaryText)),
+              ),
+              isSaving
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: accentColor)),
+                    )
+                  : TextButton(
+                      onPressed: () async {
+                        final newPassword = newPasswordController.text.trim();
+                        final confirmPassword =
+                            confirmPasswordController.text.trim();
+
+                        if (newPassword.isEmpty || confirmPassword.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content:
+                                      Text('Password fields cannot be empty.'),
+                                  backgroundColor: Colors.orange));
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text(
+                                  'Password must be at least 6 characters long.'),
+                              backgroundColor: Colors.orange));
+                          return;
+                        }
+                        if (newPassword != confirmPassword) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Passwords do not match.'),
+                                  backgroundColor: Colors.orange));
+                          return;
+                        }
+
+                        setStateDialog(() {
+                          isSaving = true;
+                        });
+
+                        try {
+                          await supabase.auth.updateUser(
+                            UserAttributes(password: newPassword),
+                          );
+
+                          if (!mounted) return;
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                            content: Text('Password updated successfully!'),
+                            backgroundColor: Colors.green,
+                          ));
+                        } catch (error) {
+                          if (!mounted) return;
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Failed to update password: ${error.toString()}'),
+                            backgroundColor: Colors.red,
+                          ));
+                        } finally {
+                          setStateDialog(() {
+                            isSaving = false;
+                          });
+                        }
+                      },
+                      child: const Text('Save',
+                          style: TextStyle(
+                              color: accentColor, fontWeight: FontWeight.bold)),
+                    ),
+            ],
+          );
+        });
       },
     );
   }
@@ -311,12 +367,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
     );
   }
-  
-  // --- WIDGET BUILDERS ---
-  
+
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 20.0, bottom: 8.0),
+      padding: const EdgeInsets.only(
+          left: 16.0, right: 16.0, top: 20.0, bottom: 8.0),
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
@@ -329,14 +384,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildInfoTile({required IconData icon, required String title, String? subtitle}) {
-     return ListTile(
-        leading: Icon(icon, color: iconColor),
-        title: Text(title, style: const TextStyle(color: darkPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
-        subtitle: subtitle != null
-            ? Text(subtitle, style: TextStyle(color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
-            : null,
-      );
+  Widget _buildInfoTile(
+      {required IconData icon, required String title, String? subtitle}) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(title,
+          style: const TextStyle(
+              color: darkPrimaryText,
+              fontSize: 16,
+              fontWeight: FontWeight.w600)),
+      subtitle: subtitle != null
+          ? Text(subtitle,
+              style: TextStyle(
+                  color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
+          : null,
+    );
   }
 
   Widget _buildSettingsTile({
@@ -350,13 +412,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       color: Colors.transparent,
       child: ListTile(
         leading: Icon(icon, color: iconColor),
-        title: Text(title, style: const TextStyle(color: darkPrimaryText, fontSize: 16)),
+        title: Text(title,
+            style: const TextStyle(color: darkPrimaryText, fontSize: 16)),
         subtitle: subtitle != null
-            ? Text(subtitle, style: TextStyle(color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
+            ? Text(subtitle,
+                style: TextStyle(
+                    color: darkSecondaryText.withOpacity(0.9), fontSize: 13))
             : null,
         trailing: currentValue != null
-            ? Text(currentValue, style: const TextStyle(color: darkSecondaryText, fontSize: 15))
-            : (onTap != null ? const Icon(Icons.chevron_right, color: iconColor) : null),
+            ? Text(currentValue,
+                style: const TextStyle(color: darkSecondaryText, fontSize: 15))
+            : (onTap != null
+                ? const Icon(Icons.chevron_right, color: iconColor)
+                : null),
         onTap: onTap,
       ),
     );

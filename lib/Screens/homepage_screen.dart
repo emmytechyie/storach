@@ -1,7 +1,3 @@
-// [FULL AND COMPLETE homepage_screen.dart]
-
-// ignore_for_file: avoid_print
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:storarch/Screens/approved_screen.dart';
@@ -82,7 +78,6 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  // --- DATA & STATE MANAGEMENT ---
   Future<void> _loadInitialData() async {
     await _loadUserProfile();
     if (userProfile != null) {
@@ -382,7 +377,7 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  // --- UI BUILDER METHODS ---
+  // UI BUILDER METHODS
 
   @override
   Widget build(BuildContext context) {
@@ -905,13 +900,11 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // ✅ THIS IS THE ONLY METHOD THAT HAS BEEN MODIFIED
   Widget _buildAppDrawer() {
     // Get the user's role and student_type from the 'userProfile' map that is already loaded.
     final userRole = userProfile?['role'] as String?;
     final studentType = userProfile?['student_type'] as String?;
 
-    // Define a clear condition for who can see the project tools.
     // This is true if the user is a supervisor, an admin, OR a final year student.
     final bool canAccessProjectFeatures = (userRole == 'supervisor' ||
         userRole == 'super_admin' ||
@@ -983,7 +976,7 @@ class _HomePageState extends State<HomePage>
                   ),
                 ],
 
-                // --- The rest of the items are visible to everyone ---
+                // The rest of the items are visible to everyone
                 ListTile(
                   leading: const Icon(Icons.settings, color: darkIconColor),
                   title: const Text('Settings',
@@ -1086,7 +1079,7 @@ class _HomePageState extends State<HomePage>
               ],
             ),
           ),
-          // This ensures the logout button is always at the bottom
+          // ensures the logout button is always at the bottom
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),

@@ -81,8 +81,6 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
     _initializeScreen();
   }
 
-  // --- DATA & STATE MANAGEMENT ---
-
   Future<void> _initializeScreen() async {
     await Future.wait([
       _fetchCurrentUserRole(),
@@ -136,7 +134,7 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
         .subscribe();
   }
 
-  /// A centralized function to apply all active filters.
+  // A centralized function to apply all active filters.
   void _applyFilters() {
     setState(() {
       Iterable<ApprovedTopic> tempTopics = _approvedTopics;
@@ -206,7 +204,7 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
     }
   }
 
-  // --- DIALOGS (Add, Edit, Delete, Year Input) ---
+  // DIALOGS (Add, Edit, Delete, Year Input)
 
   void _confirmDelete(BuildContext context, ApprovedTopic topic) {
     showDialog(
@@ -501,7 +499,7 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
     );
   }
 
-  // --- UI BUILDER METHODS ---
+  // UI BUILDER METHODS
 
   @override
   Widget build(BuildContext context) {
@@ -742,7 +740,6 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
     );
   }
 
-  // --- THIS IS THE CORRECTED METHOD ---
   Widget _buildTopicGridItem(ApprovedTopic topic) {
     return Card(
       color: darkSurfaceColor,
@@ -753,7 +750,7 @@ class _ApprovedTopicsScreenState extends State<ApprovedTopicsScreen> {
         // This Column will now be as tall as its children need it to be.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // This is crucial!
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Text content
             Text(

@@ -11,14 +11,12 @@ class ChatRouterScreen extends StatefulWidget {
 }
 
 class _ChatRouterScreenState extends State<ChatRouterScreen> {
-
   @override
   void initState() {
     super.initState();
   }
 
   Future<Map<String, dynamic>?> _fetchUserRole() async {
-    // ... (this function remains the same, no changes needed)
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return null;
     try {
@@ -36,7 +34,7 @@ class _ChatRouterScreenState extends State<ChatRouterScreen> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>?>(
-      future: _userRoleV2Future, // Changed variable name to avoid conflict
+      future: _userRoleV2Future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -48,9 +46,6 @@ class _ChatRouterScreenState extends State<ChatRouterScreen> {
         if (role == 'supervisor') {
           return const SupervisorChatListScreen();
         } else if (role == 'student') {
-          // ✅ FIX: Use the new, smart StudentChatView.
-          // This widget will handle fetching the supervisor and navigating.
-          // CORRECT
           return const StudentChatView();
         } else {
           return Scaffold(
@@ -64,7 +59,6 @@ class _ChatRouterScreenState extends State<ChatRouterScreen> {
     );
   }
 
-  // Renamed the future to avoid conflict if you copy-paste multiple times.
   // You can keep your original name.
   late final Future<Map<String, dynamic>?> _userRoleV2Future = _fetchUserRole();
 }
